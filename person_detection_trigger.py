@@ -19,6 +19,14 @@ def objectLabel(kind):
     else:
         return ""
 
+
+def hasPerson(objects):
+    for obj in objects:
+        if obj.kind == 1:
+            return True
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_frames', '-n', type=int, dest='num_frames', default=None,
@@ -27,7 +35,7 @@ def main():
 
     with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
         camera.start_preview()
-        sendtime = datetime.now()
+        last_time = datetime.now()
         with CameraInference(object_detection.model()) as inference:
             for result in inference.run(args.num_frames):
                 objects = object_detection.get_objects(result)
@@ -35,12 +43,13 @@ def main():
                 #       (inference.count, inference.rate, len(objects), objects))
                 if len(objects) > 0:
                     print(f"num_objects={len(objects)}, objects={[objectLabel(obj.kind) for obj in objects]}")
-                    difftime = datetime.now() - sendtime
-                    if difftime.seconds > 3: 
-                        print(difftime)
-                        sendtime = datetime.now()
-                        camera.capture('/home/pi/Pictures/faces_%d%02d%02d-%02d%02d%02d.jpg' % 
-                                (sendtime.year, sendtime.month, sendtime.day, sendtime.hour, sendtime.minute, sendtime.second))
+                    if hasPerson(objects):
+                        diff_time = datetime.now() - last_time
+                        if diff_time.seconds > 3: 
+                            print(diff_time)
+                            last_time = datetime.now()
+                            camera.capture('/home/pi/Pictures/person_%d%02d%02d-%02d%02d%02d.jpg' % 
+                                    (last_time.year, last_time.month, last_time.day, last_time.hour, last_time.minute, last_time.second))
 
         camera.stop_preview()
 
